@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="" />
+  <title>480 Project 1 – CCA2 Encryption</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <style>
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+  <style type="text/css">
+  body 
+  {
+  	font-family:Gill Sans MT;
+  	color:#657b83;
+  	background-color:#fdf6e3;
+  	max-width:500pt;
+  	padding-left:25pt;
+  	padding-right:25pt;
+  	padding-bottom:20pt;
+  	margin:0 auto 0 auto;
+  	text-align:justify;
+  }
+  a:link {color:#6c71c4;}
+  a:visited {color:#859900;}
+  a:hover {color:#268bd2;}
+  a:active {color:#d33682;}
+  h1{}
+  h2{border-style:solid;
+   text-align:center;
+  }
+  h3
+  {
+  	margin-bottom:2pt;
+  	/*color:#268bd2;*/
+  	font-weight:bold;
+  }
+  strong
+  {
+  	color:#d33682;
+  	font-weight:bolder;
+  }
+  em
+  {
+  	color:#268bd2;
+  	font-style:italic;
+  	font-weight:bolder;
+  }
+  code
+  {
+      background-color:#eee8d5;
+      color:#586e75;
+  }
+  table.sourceCode
+  {
+      background-color:#eee8d5;
+      color:#586e75;
+  }
+  pre.sourceCode
+  {
+      background-color:#eee8d5;
+      color:#586e75;
+  }
+  .math
+  {
+      /*background-color:#eee8d5;*/
+      color:#586e75;
+      font-family:Times New Roman;
+  }
+  /*use a contextual style to undo the blue-ness:*/
+  .math em
+  {
+      color:#586e75;
+  	font-weight:normal;
+  }
+  .descrip
+  {
+  	max-width:500pt;
+  	padding-left:25pt;
+  	text-align:justify;
+  }
+  .descripbig
+  {
+  	max-width:575pt;
+  	padding-left:0pt;
+  	text-align:justify;
+  }
+  .emph
+  {
+  	color:#d33682;
+  	font-weight:bolder;
+  }
+  .litem
+  {
+  	color:#268bd2;
+  	font-style:italic;
+  	font-weight:bolder;
+  }
+  .hl
+  {
+  	color:#268bd2;
+  	font-style:italic;
+  }
+  .required
+  {
+  	color:#268bd2;
+  	font-style:italic;
+  	font-weight:bold;
+  }
+  .inputbox
+  {
+  	background-color:#eee8d5;
+  	color:#586e75;
+  	font-family:Gill Sans MT;
+  	font-weight:bolder;
+  }
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">480 Project 1 – CCA2 Encryption</h1>
+<p class="author"></p>
+</header>
+<h2 id="due-friday-october-18th-1159pm"><em>Due:</em> Friday, October 18th @ 11:59pm</h2>
+<h2 id="synopsis">Synopsis</h2>
+<p>In this assignment you are asked to build a public key cryptosystem using a <em>key encapsulation mechanism</em>. The idea is that by using a hybrid encryption scheme (combining an asymmetric and symmetric system), we can produce a highly efficient public-key system, thus getting the best of both worlds.</p>
+<h3 id="goals-for-the-student">Goals for the student</h3>
+<ul>
+<li>Understand different security definitions for cryptosystems.</li>
+<li>Hands on experience programming with a variety of crypto building blocks (symmetric encryption, asymmetric encryption, hashing, MACs…).</li>
+</ul>
+<h2 id="important-notes-on-grading">Important Notes on Grading</h2>
+<p>I would like you all to collaborate on these projects in small teams. Teams should ideally have 4 people, but <strong>no less than 3</strong>. Details:</p>
+<ul>
+<li>Everyone should sign up on <a href="https://bitbucket.org/">bitbucket</a>.</li>
+<li>Designate one member of your team to be the leader / repository owner. (They’ll set up the repository and grant access to the rest of the team.)</li>
+<li>Commits from the team members can be incorporated in one of two ways:
+<ol type="1">
+<li>Follow the instructions on <a href="http://www-cs.ccny.cuny.edu/~wes/CSC103F16/scm.html#collaborate">collaborating with git</a>. (Team leaders: don’t forget to give other members write access to the repository.)</li>
+<li>Use <a href="https://www.atlassian.com/git/tutorials/making-a-pull-request/example">bitbucket’s fork + pull request</a> features.</li>
+</ol>
+<strong>NOTE:</strong> Either way you do it, you should follow the guidelines given above about <a href="http://www-cs.ccny.cuny.edu/~wes/CSC103F16/scm.html#collaborate">avoiding merge conflicts</a>.</li>
+<li>Team leaders – please <em>edit</em> (or start, if it doesn’t exist) a piazza post containing the url of your repository, and a list of the team’s members.</li>
+<li>Please don’t make commits on behalf of another student – it helps me when grading to see who has done what via commit logs.</li>
+</ul>
+<h2 id="the-cryptosystem">The cryptosystem</h2>
+<h3 id="step-1-cca2-symmetric-encryption">Step 1: CCA2 symmetric encryption</h3>
+<p>First, we build CCA2 symmetric encryption from the weaker assumption of CPA encryption. Let <span class="math inline"><em>f</em><sub><em>k</em></sub></span> denote our symmetric encryption with key <span class="math inline"><em>k</em></span>, and let <span class="math inline"><em>h</em><sub><em>k</em>′</sub></span> denote our MAC with key <span class="math inline"><em>k</em>′</span>. To encrypt a bit string <span class="math inline"><em>m</em></span>, we set <span class="math inline"><em>c</em> = <em>f</em><sub><em>k</em></sub>(<em>m</em>)</span>, and set the ciphertext to the pair <span class="math inline">(<em>c</em>, <em>h</em><sub><em>k</em>′</sub>(<em>c</em>))</span>. Decryption of a pair <span class="math inline">(<em>x</em>, <em>y</em>)</span> first makes sure that <span class="math inline"><em>h</em><sub><em>k</em>′</sub>(<em>x</em>) = <em>y</em></span>; if this fails, output <span class="math inline">⊥</span>, otherwise decrypt <span class="math inline"><em>x</em></span> and output the result.</p>
+<p>Given that <span class="math inline"><em>f</em><sub><em>k</em></sub></span> is CPA secure and that <span class="math inline"><em>h</em><sub><em>k</em>′</sub></span> is pseudorandom, it is well known that this construction is CCA2 secure. The key idea is that the MAC makes the adversary’s decryption queries useless: for any ciphertext which was not the output of the encryption oracle, the output will invariably be <span class="math inline">⊥</span>: To find a valid ciphertext <em>is</em> to forge the MAC. Formal proof is left as an exercise (use any CCA2 adversary to build a CPA adversary with almost the same advantage by emulating a CCA2 <em>challenger</em>).</p>
+<h3 id="step-2-kem-to-make-it-public-key">Step 2: KEM to make it public-key</h3>
+<p>The idea is very simple: create a random key for the above scheme, encrypt the message you want to send, and then send it, along with a <em>public-key encryption of the symmetric key</em>. The analysis is a little tricky though. To preserve the CCA2-ness, we can’t just send a public-key encryption of the key – we need a <em>key encapsulation mechanism</em> which has some special properties. In particular, we need our KEM to have an analogous property to CCA2 for an encryption scheme: an adversary with access to a “decapsulation” oracle (a box that outputs the key from its encapsulation) cannot differentiate between valid encapsulations (where the key corresponds to the ciphertext), and random keys. Obviously the same CCA2 rule of “you can’t decrypt the challenge” applies, but other than that, anything goes.</p>
+<p>How to build such a thing? It turns out that all you need is a public key encryption (plain, deterministic RSA works!), a key derivation function (HMAC will do fine), and a hash function (we could use HMAC again, but we must make sure it is with a different key). Letting <span class="math inline"><em>K</em><em>D</em><em>F</em></span> denote the key derivation function, <span class="math inline"><em>E</em><sub><em>p</em><em>k</em></sub></span> the encryption (with public key <span class="math inline"><em>p</em><em>k</em></span>) and letting <span class="math inline"><em>H</em></span> denote the hash, then the KEM construction is as follows: select a random message <span class="math inline"><em>x</em></span> (needs at least as much entropy as your key!) and then let <span class="math inline"><em>C</em> = (<em>E</em><sub><em>p</em><em>k</em></sub>(<em>x</em>), <em>H</em>(<em>x</em>))</span> be the encapsulation, while <span class="math inline"><em>K</em><em>D</em><em>F</em>(<em>x</em>)</span> is the key. The “decapsulation” algorithm on input <span class="math inline"><em>C</em> = (<em>C</em><sub>0</sub>, <em>C</em><sub>1</sub>)</span> simply computes <span class="math inline"><em>x</em> = <em>D</em><sub><em>p</em><em>k</em></sub>(<em>C</em><sub>0</sub>)</span>, and outputs <span class="math inline"><em>K</em><em>D</em><em>F</em>(<em>x</em>)</span> if <span class="math inline"><em>H</em>(<em>x</em>) = <em>C</em><sub>1</sub></span>; otherwise it outputs <span class="math inline">⊥</span>. It isn’t too hard to prove this has the property we need. <span class="citation" data-cites="dent2003">(See Dent 2003 for the details.)</span></p>
+<h3 id="why-is-the-composition-cca2-secure">Why is the composition CCA2 secure?</h3>
+<p>There is a nice hybrid-style argument in <span class="citation" data-cites="CS2003">(Cramer and Shoup 2003, chap. 7)</span>, but verifying all the details would take us a little off course. Here’s the gist though: how different could the CCA2 game be if we swapped out the encapsulated key with a totally random key for the symmetric encryption? Not very! Even if we gave the adversary the ability to run decapsulation queries, he can’t distinguish the cases (this is exactly our definition of CCA2 for a KEM). But now if the key is random, this is precisely the situation for which we’ve proved CCA2 security of the symmetric scheme. Voila.</p>
+<h2 id="details">Details</h2>
+<p>I’ve given you a skeleton in C, but you can write the program in other languages if you want, <strong>as long as you follow the guidelines</strong>. Look at the <a href="#other-lang">section on other languages</a> for details.</p>
+<h3 id="regarding-the-c-skeleton">Regarding the C skeleton</h3>
+<p>To facilitate the development, you can use <a href="http://gmplib.org/">GMP</a> for the long integer arithmetic needed for RSA, and <a href="http://www.openssl.org/">OpenSSL</a> for various cryptographic primitives like hashing and symmetric encryption. (<em>NOTE:</em> OpenSSL also contains implementations of RSA of course, but I want you to write this part yourself – it is more educational, and actually quite simple since “plain” RSA suffices for our application.)</p>
+<p>I’ve given you a skeleton, as well as some examples that you can draw upon. The stubs that you are supposed to fill out are labeled “TODO”. Unless you have a super-compelling reason, I would recommend that you don’t change the interface.</p>
+<p>Building blocks:</p>
+<ul>
+<li>RSA for PKE. You will implement this yourself. Note that this is the naive, deterministic, un-semantically-secure version. But it will work fine for our KEM.</li>
+<li>AES for symmetric encryption. You can get this from OpenSSL. We’ll use it in counter mode for optimal speed during encryption. (<strong>Question:</strong> why is cbc mode encryption usually slower than cbc decryption?)</li>
+<li>HMAC for a MAC. Also available via OpenSSL.</li>
+</ul>
+<p>Be sure to read <code>man 4 random</code> at some point.</p>
+<h3 id="hints-even-more-details">Hints / even more details</h3>
+<h4 id="what-to-do-when">What to do when</h4>
+<p>I’d attack this in the following order:</p>
+<ol type="1">
+<li>RSA</li>
+<li>SKE (only on buffers)</li>
+<li>SKE that works on files</li>
+<li>KEM (shouldn’t be too challenging once you have the other pieces)</li>
+</ol>
+<p>There are some basic tests for RSA and the memory buffer version of SKE (<code>ske_encrypt</code> / <code>ske_decrypt</code>) in the <code>tests/</code> directory, so those are good to start with. Once you have that working, implement the versions which operate on files. <em>Hint:</em> For this, I would recommend <code>mmap</code>. Then you can just hand off the pointers from <code>mmap</code> to the simple versions and let the kernel do all the buffering work for you. (Nice, right?) Or if you are lazy, you can also just read the entire file contents into a (potentially huge) buffer. But Zoidberg will be mad at you.</p>
+<p><img src="bad-code.jpg" alt="zoidberg" /><br />
+</p>
+<h4 id="extra-notes-on-the-kdf-for-symmetric-encryption">Extra notes on the KDF for symmetric encryption</h4>
+<p><em>Note:</em> for the KEM scheme, both the KDF and the hash function are public. To ensure “orthogonality” of the two, one is implemented via HMAC, but the key is public (it is hard-coded into <code>ske.c</code> – see <code>KDF_KEY</code>). Note that the KDF should be handled inside of this function:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1"></a><span class="dt">int</span> ske_keyGen(SKE_KEY* K, <span class="dt">unsigned</span> <span class="dt">char</span>* entropy, <span class="dt">size_t</span> entLen);</span></code></pre></div>
+<p>If the <code>entropy</code> buffer is supplied, the KDF should be applied to it to derive the key. Thus when implementing <code>kem_encrypt</code>, you can take the encapsulated key <code>x</code> and supply that as <code>entropy</code>. Maybe something like this:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1"></a><span class="dt">unsigned</span> <span class="dt">char</span>* x = malloc(len);</span>
+<span id="cb2-2"><a href="#cb2-2"></a><span class="co">/* ...fill x with random bytes (which fit in an RSA plaintext)... */</span></span>
+<span id="cb2-3"><a href="#cb2-3"></a>SKE_KEY SK;</span>
+<span id="cb2-4"><a href="#cb2-4"></a>ske_keyGen(&amp;SK,x,len);</span>
+<span id="cb2-5"><a href="#cb2-5"></a><span class="co">/* ...now encrypt with SK... */</span></span></code></pre></div>
+<h4 id="basic-usage-command-line-interface">Basic usage (command line interface)</h4>
+<p>This is documented via the usage string (as well as by looking at the test script), but here are some examples.</p>
+<p>Generate a 2048 bit key, and save to /tmp/testkey{,.pub}:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1"></a><span class="ex">./kem-enc</span> -b 2048 -g /tmp/testkey</span></code></pre></div>
+<p>Encrypt <code>file</code> with the public key and write ciphertext to <code>ct</code>:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1"></a><span class="ex">./kem-enc</span> -e -i file -o ct -k /tmp/testkey.pub</span></code></pre></div>
+<p>Decrypt <code>ct</code> with the private key and write plaintext to <code>file0</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1"></a><span class="ex">./kem-enc</span> -d -i ct -o file0 -k /tmp/testkey</span></code></pre></div>
+<h3 id="compiling-testing-debugging">Compiling, testing, debugging</h3>
+<p>As mentioned, there are some test programs in <code>tests/</code> for the RSA and SKE components. (You can build these via <code>make tests</code>.) For the hybrid KEM scheme, there’s a <code>kem-test.sh</code> script. Fill the <code>tests/data/</code> directory with some files, and it will check if encrypt and decrypt at least compose to be the identity on those inputs. Also, there is a make target called <code>debug</code> to add a few helpful compiler flags. (Run <code>make -B debug</code> to recompile with debugging flags enabled.)</p>
+<h3 id="other-lang">Other languages</h3>
+<p>If you want to do this in another language (or without the skeleton code), feel free to do so. Keep in mind that your code should speak the same language as the one described in the skeleton. That is,</p>
+<ul>
+<li>The binary file formats (for keys and ciphertext) should be the same.</li>
+<li>Your program should understand the same command line arguments.</li>
+</ul>
+<p>Moreover, your code cannot assume additional cryptographic functionality beyond what is outlined above. In particular, <strong>you must implement RSA from long integers</strong>. You’re welcome to get your hash functions and AES from somewhere other than OpenSSL, but you can’t rely on things that trivialize any part of the project.</p>
+<p>Lastly, please provide a Makefile along with any instructions you think would help if you don’t use the skeleton.</p>
+<h2 id="submission-procedure">Submission Procedure</h2>
+<p>Just edit the appropriate piazza post to reflect the url of your git repository and the list of team members.</p>
+<h1 id="references">References</h1>
+<!--  links  -->
+<div id="refs" class="references" role="doc-bibliography">
+<div id="ref-CS2003">
+<p>Cramer, Ronald, and Victor Shoup. 2003. “Design and Analysis of Practical Public-Key Encryption Schemes Secure Against Adaptive Chosen Ciphertext Attack.” <em>SIAM Journal on Computing</em> 33 (1): 167–226.</p>
+</div>
+<div id="ref-dent2003">
+<p>Dent, Alex. 2003. “A Designer’s Guide to KEMs.” <em>Cryptography and Coding</em>, 133–51.</p>
+</div>
+</div>
+</body>
+</html>
