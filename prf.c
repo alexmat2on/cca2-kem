@@ -7,6 +7,21 @@
 #include <openssl/hmac.h>
 #include <gmp.h>
 
+/* Some utilities that can be reused across the project */
+void print_hex(const unsigned char* buffer, const int len)
+{
+	for (int i = 0; i < len; i++) {
+		fprintf(stderr, "%02x",buffer[i]);
+	}
+	fprintf(stderr, "\n");
+}
+
+void buffer_concat(unsigned char* bufferA, const int lenA, unsigned char* bufferB, const int lenB, unsigned char* newB)
+{
+	memcpy(newB, bufferA, lenA);
+	memcpy(newB+lenA, bufferB, lenB);
+}
+
 /* PRF state: */
 #define BLOCK_LEN 64 /* we will use SHA512 */
 static mpz_t rcount;
@@ -56,4 +71,3 @@ int randBytes(unsigned char* outBuf, size_t len)
 	}
 	return 0;
 }
-
