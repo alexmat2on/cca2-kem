@@ -8,6 +8,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <openssl/sha.h>
+#include <time.h>
 
 #include "ske.h"
 #include "rsa.h"
@@ -52,11 +53,75 @@ enum modes {
 
 #define HASHLEN 32 /* for sha256 */
 
+void random_keygen(unsigned char* SK, size_t length) {
+	srand(time(0));
+    char alphabet[] = "0123456789"
+                     "abcdefghijklmnopqrstuvwxyz"
+                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    while (length-- > 0) {
+        size_t index = (double) rand() / RAND_MAX * (sizeof alphabet - 1);
+        *SK++ = alphabet[index];
+    }
+}
+
+void create_hash(char* output, unsigned char* input, size_t length) {
+	unsigned char hash[SHA256_DIGEST_LENGTH];
+	SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    SHA256_Update(&sha256, input, length);
+    SHA256_Final(hash, &sha256);
+
+    int i = 0;
+    for(i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+        sprintf(output + (i * 2), "%02x", hash[i]);
+    }
+    output[64] = 0;
+    return;
+}
+
 int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 {
 	/* TODO: encapsulate random symmetric key (SK) using RSA and SHA256;
 	 * encrypt fnIn with SK; concatenate encapsulation and cihpertext;
 	 * write to fnOut. */
+
+	//generate random key string 'x'
+	unsigned char* x = malloc(HASHLEN);
+	/* ...fill x with random bytes (which fit in an RSA plaintext)... */
+	random_keygen(x,HASHLEN);
+
+	//generate symmetric key
+	SKE_KEY SK;
+	ske_keyGen(&SK,x,HASHLEN);
+
+	//Initialize K as an RSA key
+	//rsa_keyGen(HASHLEN, K);
+
+	//encrypt x using RSA
+	unsigned char* x_encrypted = malloc(HASHLEN);
+	rsa_encrypt(x_encrypted, x, HASHLEN, K);
+
+	//Hash x using SHA256
+	char x_hashed[65];
+	create_hash(x_hashed, x, HASHLEN);
+	//printf("%s\n%s\n", x, x_hashed);
+
+	//Concatenate x_encrypted and x_hashed to form KEM
+	char* kem = malloc(sizeof x_encrypted + sizeof x_hashed);
+	sprintf(kem, "%s%s", x_encrypted, x_hashed);
+	printf("%s\n%s\n%s\n", x_encrypted, x_hashed, kem);
+
+	//Encrypt fnIn with SK
+	ske_encrypt_file(fnOut, fnIn, &SK, x, 0);
+
+	//Concatenate KEM and ciphertext from ^^
+
+
+	//Write to fnOut
+
+
 	return 0;
 }
 
@@ -139,6 +204,7 @@ int main(int argc, char *argv[]) {
 	 * rsa_shredKey function). */
 	switch (mode) {
 		case ENC:
+			kem_encrypt(NULL, NULL, NULL);
 		case DEC:
 		case GEN:
 		default:
