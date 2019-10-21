@@ -116,7 +116,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	}
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
-	char* output_map = mmap(NULL, sb2.st_size, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
+	char* output_map = mmap(NULL, ske_getOutputLen(sb1.st_size), PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
 
 	size_t len = sb1.st_size + 1; /* +1 to include null char */
 	// size_t ctLen = ske_getOutputLen(len);
