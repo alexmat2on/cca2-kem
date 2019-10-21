@@ -56,6 +56,28 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	 * the right length, and then test for primality (see the ISPRIME
 	 * macro above).  Once you've found the primes, set up the other
 	 * pieces of the key ({en,de}crypting exponents, and n=pq). */
+
+	size_t keyBytes = keyBits/4;
+
+	unsigned char p_char[keyBytes];
+	NEWZ(p_mpz);
+
+	unsigned char q_char[keyBytes];
+	NEWZ(q_mpz);
+
+	do {
+		randBytes(p_char, keyBytes);
+		BYTES2Z(p_mpz, p_char, keyBytes);
+	} while(ISPRIME(p_mpz)==0);
+
+	do {
+		randBytes(q_char, keyBytes);
+		BYTES2Z(q_mpz, q_char, keyBytes);
+	} while(ISPRIME(q_mpz)==0);
+
+	mpz_set(K->p,p_mpz);
+	mpz_set(K->q,q_mpz);
+
 	return 0;
 }
 
