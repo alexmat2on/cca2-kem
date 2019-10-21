@@ -3,6 +3,7 @@
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <openssl/err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> /* memcpy */
@@ -91,6 +92,32 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, unsigned char* IV, size_t offset_out)
 {
 	/* TODO: write this.  Hint: mmap. */
+	/* NOTE: offset determines where to begin writing to the output file.
+ 	 * set to 0 to erase the file and write it from scratch. */
+
+	int fdin = open(fnin, O_RDONLY);
+	struct stat sb1;
+	if (fstat(fdin,&sb1) == -1) {
+		perror("Could't get input file size.\n");
+		return -1;
+	}
+	
+	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
+	size_t ctlen = ske_getOutputLen(sb1.st_size);
+	write(fdout, "tmp", ctlen);
+
+	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
+	char* output_map = mmap(NULL, ctlen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
+
+	size_t len = sb1.st_size + 1; /* +1 to include null char */
+	ske_encrypt((unsigned char*)output_map, (unsigned char*)input_map, len, K, IV);
+	
+	munmap(input_map, sb1.st_size);
+	munmap(output_map,ctlen);
+
+	close(fdin);
+	close(fdout);
+
 	return 0;
 }
 size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
@@ -133,6 +160,28 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 size_t ske_decrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, size_t offset_in)
 {
-	/* TODO: write this. */
+	int fdin = open(fnin, O_RDONLY);
+	struct stat sb1;
+	if (fstat(fdin,&sb1) == -1) {
+		perror("Could't get input file size.\n");
+		return -1;
+	}
+
+	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
+	size_t plainLen = sb1.st_size - AES_BLOCK_SIZE - HM_LEN;
+	write(fdout, "tmp", plainLen);
+
+	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
+	char* output_map = mmap(NULL, plainLen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
+
+	size_t len = sb1.st_size + 1; /* +1 to include null char */
+	ske_decrypt((unsigned char*)output_map, (unsigned char*)input_map, len, K);
+	
+	munmap(input_map, sb1.st_size);
+	munmap(output_map,plainLen);
+
+	close(fdin);
+	close(fdout);
+
 	return 0;
 }
