@@ -135,7 +135,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	
 	// Write to file
 	fd = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
-	lseek(fd, offset_out, SEEK_CUR);
+	lseek(fd, offset_in, SEEK_CUR);
 	write(fd, pt, 512);
 	close(fd);
 
