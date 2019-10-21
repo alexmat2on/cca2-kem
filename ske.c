@@ -3,6 +3,7 @@
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <openssl/err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> /* memcpy */
@@ -55,6 +56,41 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, unsigned char* IV, size_t offset_out)
 {
 	/* TODO: write this.  Hint: mmap. */
+	/* NOTE: offset determines where to begin writing to the output file.
+ 	 * set to 0 to erase the file and write it from scratch. */
+
+	// Read from file
+	int fd = open(fnin, O_RDONLY);
+	struct stat sb;
+
+	if (fstat(fd,&sb) == -1) {
+		perror("Could't get input file size.\n");
+		return -1;
+	}
+
+	char* file_in_memory = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+	if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(),0,K->aesKey, IV))
+		ERR_print_errors_fp(stderr);
+	
+	int nWritten;
+	unsigned char ct[512];
+	// EVP_EncryptUpdate() encrypts inl bytes from the buffer in and 
+	// writes the encrypted version to out.
+	if (1 != EVP_EncryptUpdate(ctx, ct, &nWritten, (unsigned char*)file_in_memory, sb.st_size))
+		ERR_print_errors_fp(stderr);
+	
+	EVP_CIPHER_CTX_free(ctx);
+	munmap(file_in_memory, sb.st_size);
+	close(fd);
+
+	// Write to file
+	fd = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
+	lseek(fd, offset_out, SEEK_CUR);
+	write(fd, ct, 512);
+	close(fd);
+
 	return 0;
 }
 size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
