@@ -106,10 +106,6 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	// struct stat sb2;
 	size_t ctlen = ske_getOutputLen(sb1.st_size);
 	write(fdout, "tmp", ctlen);
-	// if (fstat(fdout,&sb2) == -1) {
-	// 	perror("Could't get output file size.\n");
-	// 	return -1;
-	// }
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
 	char* output_map = mmap(NULL, ctlen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
@@ -175,11 +171,6 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
 	size_t plainLen = sb1.st_size - AES_BLOCK_SIZE - HM_LEN;
 	write(fdout, "tmp", plainLen);
-	// struct stat sb2;
-	// if (fstat(fdout,&sb2) == -1) {
-	// 	perror("Could't get output file size.\n");
-	// 	return -1;
-	// }
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
 	char* output_map = mmap(NULL, plainLen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
