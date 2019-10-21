@@ -106,5 +106,38 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, size_t offset_in)
 {
 	/* TODO: write this. */
+	/* NOTE: offset determines where to begin reading the input file. */
+
+	unsigned char pt[512];
+	unsigned char iv[16];
+	for (size_t i = 0; i < 16; ++i) iv[i] = 1;
+	// Read from file
+	int fd = open(fnin, O_RDONLY);
+	struct stat sb;
+
+	if (fstat(fd,&sb) == -1) {
+		perror("Could't get input file size.\n");
+		return -1;
+	}
+
+	char* file_in_memory = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	int nWritten = 0;
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+	if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), 0, K->aesKey, iv))
+		ERR_print_errors_fp(stderr);
+	
+	if (1 != EVP_DecryptUpdate(ctx,pt,&nWritten,file_in_memory,sb.st_size))
+		ERR_print_errors_fp(stderr);
+	
+	EVP_CIPHER_CTX_free(ctx);
+	munmap(file_in_memory, sb.st_size);
+	close(fd);
+	
+	// Write to file
+	fd = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
+	lseek(fd, offset_out, SEEK_CUR);
+	write(fd, pt, 512);
+	close(fd);
+
 	return 0;
 }
