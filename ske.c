@@ -61,8 +61,8 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		fclose(frand);
 	}
 
-	unsigned char ciphertext[len];// = malloc(512); //[512]
-	unsigned char mac[HM_LEN];// = malloc(512); //[512]
+	unsigned char ciphertext[len];
+	unsigned char mac[HM_LEN];
 	memset(ciphertext, 0, len);
 	memset(mac, 0, HM_LEN);
 
@@ -101,7 +101,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		perror("Could't get input file size.\n");
 		return -1;
 	}
-	
+
 	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
 	size_t ctlen = ske_getOutputLen(sb1.st_size);
 	write(fdout, "tmp", ctlen);
@@ -111,7 +111,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 
 	size_t len = sb1.st_size + 1; /* +1 to include null char */
 	ske_encrypt((unsigned char*)output_map, (unsigned char*)input_map, len, K, IV);
-	
+
 	munmap(input_map, sb1.st_size);
 	munmap(output_map,ctlen);
 
@@ -176,7 +176,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 
 	size_t len = sb1.st_size + 1; /* +1 to include null char */
 	ske_decrypt((unsigned char*)output_map, (unsigned char*)input_map, len, K);
-	
+
 	munmap(input_map, sb1.st_size);
 	munmap(output_map,plainLen);
 
