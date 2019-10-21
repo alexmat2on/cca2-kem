@@ -103,7 +103,6 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	}
 	
 	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
-	// struct stat sb2;
 	size_t ctlen = ske_getOutputLen(sb1.st_size);
 	write(fdout, "tmp", ctlen);
 
