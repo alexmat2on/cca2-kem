@@ -100,7 +100,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
 
 	// lseek(fd, offset_out, SEEK_CUR);
-	write(fdout, "tmp", 3);
+	
 	// close(fd);
 	struct stat sb1;
 	struct stat sb2;
@@ -110,13 +110,17 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		return -1;
 	}
 
+	size_t ctlen = ske_getOutputLen(sb1.st_size);
+
+	write(fdout, "tmp", ctlen);
+
 	if (fstat(fdout,&sb2) == -1) {
 		perror("Could't get output file size.\n");
 		return -1;
 	}
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
-	char* output_map = mmap(NULL, ske_getOutputLen(sb1.st_size), PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
+	char* output_map = mmap(NULL, ctlen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
 
 	size_t len = sb1.st_size + 1; /* +1 to include null char */
 	// size_t ctLen = ske_getOutputLen(len);
@@ -138,7 +142,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	
 	// EVP_CIPHER_CTX_free(ctx);
 	munmap(input_map, sb1.st_size);
-	munmap(output_map,ske_getOutputLen(sb1.st_size));
+	munmap(output_map,ctlen);
 
 	close(fdin);
 	close(fdout);
@@ -188,13 +192,15 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 {
 	int fdin = open(fnin, O_RDONLY);
 	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
-	write(fdout, "tmp", 3);
 
 	struct stat sb1;
 	if (fstat(fdin,&sb1) == -1) {
 		perror("Could't get input file size.\n");
 		return -1;
 	}
+
+	size_t plainLen = sb1.st_size - AES_BLOCK_SIZE - HM_LEN;
+	write(fdout, "tmp", plainLen);
 
 	struct stat sb2;
 	if (fstat(fdout,&sb2) == -1) {
@@ -203,16 +209,16 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	}
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
-	char* output_map = mmap(NULL, ske_getOutputLen(sb1.st_size), PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
+	char* output_map = mmap(NULL, plainLen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
 
 	size_t len = sb1.st_size + 1; /* +1 to include null char */
 	
 	// ske_decrypt((unsigned char*)pt,ct,ctLen,K);
 	// size_t ctLen = ske_getOutputLen(len);
-	ske_decrypt((unsigned char*)output_map, (unsigned char*)input_map, sb1.st_size, K);
+	ske_decrypt((unsigned char*)output_map, (unsigned char*)input_map, len, K);
 	
 	munmap(input_map, sb1.st_size);
-	munmap(output_map,ske_getOutputLen(sb1.st_size));
+	munmap(output_map,plainLen);
 
 	close(fdin);
 	close(fdout);
