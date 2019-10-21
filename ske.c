@@ -96,36 +96,52 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
  	 * set to 0 to erase the file and write it from scratch. */
 
 	// Read from file
-	int fd = open(fnin, O_RDONLY);
-	struct stat sb;
+	int fdin = open(fnin, O_RDONLY);
+	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
+	// lseek(fd, offset_out, SEEK_CUR);
+	// write(fd, ct, 512);
+	// close(fd);
+	struct stat sb1;
+	struct stat sb2;
 
-	if (fstat(fd,&sb) == -1) {
+	if (fstat(fdin,&sb1) == -1) {
 		perror("Could't get input file size.\n");
 		return -1;
 	}
 
-	char* file_in_memory = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	
-	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-	if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(),0,K->aesKey, IV))
-		ERR_print_errors_fp(stderr);
-	
-	int nWritten;
-	unsigned char ct[512];
-	// EVP_EncryptUpdate() encrypts inl bytes from the buffer in and 
-	// writes the encrypted version to out.
-	if (1 != EVP_EncryptUpdate(ctx, ct, &nWritten, (unsigned char*)file_in_memory, sb.st_size))
-		ERR_print_errors_fp(stderr);
-	
-	EVP_CIPHER_CTX_free(ctx);
-	munmap(file_in_memory, sb.st_size);
-	close(fd);
+	if (fstat(fdout,&sb2) == -1) {
+		perror("Could't get output file size.\n");
+		return -1;
+	}
 
-	// Write to file
-	fd = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
-	lseek(fd, offset_out, SEEK_CUR);
-	write(fd, ct, 512);
-	close(fd);
+	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
+	char* output_map = mmap(NULL, sb2.st_size, PROT_WRITE, MAP_SHARED, fdout, 0);
+
+	size_t len = sb1.st_size + 1; /* +1 to include null char */
+	// size_t ctLen = ske_getOutputLen(len);
+	// int rcode = 1;
+	// unsigned char* ct = malloc(ctLen);
+	// ske_encrypt(ct,(unsigned char*)message,len,K,IV);
+	ske_encrypt((unsigned char*)output_map, (unsigned char*)input_map, len, K, IV);
+	
+	// EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+	// if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(),0,K->aesKey, IV))
+	// 	ERR_print_errors_fp(stderr);
+	
+	// int nWritten;
+	// unsigned char ct[512];
+	// // EVP_EncryptUpdate() encrypts inl bytes from the buffer in and 
+	// // writes the encrypted version to out.
+	// if (1 != EVP_EncryptUpdate(ctx, ct, &nWritten, (unsigned char*)file_in_memory, sb.st_size))
+	// 	ERR_print_errors_fp(stderr);
+	
+	// EVP_CIPHER_CTX_free(ctx);
+	munmap(input_map, sb1.st_size);
+	munmap(output_map,sb2.st_size);
+
+	close(fdin);
+	close(fdout);
+	// close(fd);
 
 	return 0;
 }
@@ -169,39 +185,69 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 size_t ske_decrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, size_t offset_in)
 {
-	/* TODO: write this. */
-	/* NOTE: offset determines where to begin reading the input file. */
-
-	unsigned char pt[512];
-	unsigned char iv[16];
-	for (size_t i = 0; i < 16; ++i) iv[i] = 1;
-	// Read from file
-	int fd = open(fnin, O_RDONLY);
-	struct stat sb;
-
-	if (fstat(fd,&sb) == -1) {
+	int fdin = open(fnin, O_RDONLY);
+	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
+	struct stat sb1;
+	if (fstat(fdin,&sb1) == -1) {
 		perror("Could't get input file size.\n");
 		return -1;
 	}
 
-	char* file_in_memory = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	int nWritten = 0;
-	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-	if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), 0, K->aesKey, iv))
-		ERR_print_errors_fp(stderr);
+	struct stat sb2;
+	if (fstat(fdout,&sb2) == -1) {
+		perror("Could't get output file size.\n");
+		return -1;
+	}
+
+	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
+	char* output_map = mmap(NULL, sb2.st_size, PROT_WRITE, MAP_SHARED, fdout, 0);
+
+	size_t len = sb1.st_size + 1; /* +1 to include null char */
 	
-	if (1 != EVP_DecryptUpdate(ctx,pt,&nWritten,file_in_memory,sb.st_size))
-		ERR_print_errors_fp(stderr);
+	// ske_decrypt((unsigned char*)pt,ct,ctLen,K);
+	// size_t ctLen = ske_getOutputLen(len);
+	ske_decrypt((unsigned char*)output_map, (unsigned char*)input_map, sb1.st_size, K);
 	
-	EVP_CIPHER_CTX_free(ctx);
-	munmap(file_in_memory, sb.st_size);
-	close(fd);
+	munmap(input_map, sb1.st_size);
+	munmap(output_map,sb2.st_size);
+
+	close(fdin);
+	close(fdout);
+
+
+	/* TODO: write this. */
+	/* NOTE: offset determines where to begin reading the input file. */
+
+	// unsigned char pt[512];
+	// unsigned char iv[16];
+	// for (size_t i = 0; i < 16; ++i) iv[i] = 1;
+	// // Read from file
+	// int fd = open(fnin, O_RDONLY);
+	// struct stat sb;
+
+	// if (fstat(fd,&sb) == -1) {
+	// 	perror("Could't get input file size.\n");
+	// 	return -1;
+	// }
+
+	// char* file_in_memory = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	// int nWritten = 0;
+	// EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+	// if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), 0, K->aesKey, iv))
+	// 	ERR_print_errors_fp(stderr);
 	
-	// Write to file
-	fd = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
-	lseek(fd, offset_in, SEEK_CUR);
-	write(fd, pt, 512);
-	close(fd);
+	// if (1 != EVP_DecryptUpdate(ctx,pt,&nWritten,file_in_memory,sb.st_size))
+	// 	ERR_print_errors_fp(stderr);
+	
+	// EVP_CIPHER_CTX_free(ctx);
+	// munmap(file_in_memory, sb.st_size);
+	// close(fd);
+	
+	// // Write to file
+	// fd = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
+	// lseek(fd, offset_in, SEEK_CUR);
+	// write(fd, pt, 512);
+	// close(fd);
 
 	return 0;
 }
