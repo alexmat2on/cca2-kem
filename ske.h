@@ -2,6 +2,8 @@
 #pragma once
 
 #include <openssl/aes.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
 #include <inttypes.h>
 #include <stdio.h>
 
