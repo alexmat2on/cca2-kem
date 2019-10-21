@@ -98,8 +98,9 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	// Read from file
 	int fdin = open(fnin, O_RDONLY);
 	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
+
 	// lseek(fd, offset_out, SEEK_CUR);
-	// write(fd, ct, 512);
+	write(fdout, "tmp", 3);
 	// close(fd);
 	struct stat sb1;
 	struct stat sb2;
@@ -115,7 +116,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	}
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
-	char* output_map = mmap(NULL, sb2.st_size, PROT_WRITE, MAP_SHARED, fdout, 0);
+	char* output_map = mmap(NULL, sb2.st_size, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
 
 	size_t len = sb1.st_size + 1; /* +1 to include null char */
 	// size_t ctLen = ske_getOutputLen(len);
@@ -200,7 +201,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	}
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
-	char* output_map = mmap(NULL, sb2.st_size, PROT_WRITE, MAP_SHARED, fdout, 0);
+	char* output_map = mmap(NULL, sb2.st_size, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
 
 	size_t len = sb1.st_size + 1; /* +1 to include null char */
 	
