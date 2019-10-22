@@ -27,7 +27,7 @@
  * */
 
 /* we'll use hmac with sha256, which produces 32 byte output */
-#define HM_LEN 64 //32
+#define HM_LEN 32
 #define KDF_KEY "qVHqkOVJLb7EolR9dsAMVwH1hRCYVx#I"
 /* need to make sure KDF is orthogonal to other hash functions, like
  * the one used in the KDF, so we use hmac with a key. */
@@ -38,7 +38,10 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 	 * the keys (something like HMAC-SHA512 with KDF_KEY will work).
 	 * If entropy is null, just get a random key (you can use the PRF). */
 	randBytes(K->hmacKey, KLEN_SKE);
-	randBytes(K->aesKey, KLEN_SKE);
+	if (!entropy)	randBytes(K->aesKey, KLEN_SKE);
+	else {
+		HMAC(EVP_sha512(),KDF_KEY,HM_LEN,entropy,entLen,K->aesKey,NULL);
+	}
 	return 0;
 }
 size_t ske_getOutputLen(size_t inputLen)
@@ -79,7 +82,7 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 
 	buffer_concat(IV, AES_BLOCK_SIZE, ciphertext, len, iv_ct);
 
-	HMAC(EVP_sha512(),K->hmacKey,HM_LEN,iv_ct,ivCtLen,mac,NULL);
+	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,iv_ct,ivCtLen,mac,NULL);
 
 	buffer_concat(iv_ct, ivCtLen, mac, HM_LEN, outBuf);
 
@@ -104,7 +107,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 
 	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
 	size_t ctlen = ske_getOutputLen(sb1.st_size);
-	write(fdout, "tmp", ctlen);
+	write(fdout, "tmp", ctlen); // Need to write this much space to fdout -- otherwise memory access error.
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
 	char* output_map = mmap(NULL, ctlen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
@@ -136,7 +139,7 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	memcpy(ivCt, inBuf, ivCtLen);
 	memcpy(macGiven, inBuf+ivCtLen, HM_LEN);
 
-	HMAC(EVP_sha512(),K->hmacKey,HM_LEN,ivCt,ivCtLen,macCheck,NULL);
+	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ivCt,ivCtLen,macCheck,NULL);
 
 	if (memcmp(macGiven, macCheck, HM_LEN) != 0) return -1;
 
@@ -169,7 +172,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 
 	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
 	size_t plainLen = sb1.st_size - AES_BLOCK_SIZE - HM_LEN;
-	write(fdout, "tmp", plainLen);
+	write(fdout, "tmp", plainLen); // Need to write this much space to fdout -- otherwise memory access error.
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
 	char* output_map = mmap(NULL, plainLen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
