@@ -51,45 +51,49 @@ int zFromFile(FILE* f, mpz_t x)
 
 int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 {
-	rsa_initKey(K);
 	/* Use the prf to get random byte strings of
 	 * the right length, and then test for primality (see the ISPRIME
 	 * macro above).  Once you've found the primes, set up the other
 	 * pieces of the key ({en,de}crypting exponents, and n=pq). */
 
+	// initialize key struct that will store all rsa variables
+	rsa_initKey(K);
+
+	// character array length is counted in bytes, not bits
 	size_t keyBytes = keyBits/4;
 
+	// find prime p
 	unsigned char p_char[keyBytes];
 	NEWZ(p_mpz);
-
-	unsigned char q_char[keyBytes];
-	NEWZ(q_mpz);
-
 	do {
 		randBytes(p_char, keyBytes);
 		BYTES2Z(p_mpz, p_char, keyBytes);
 	} while(ISPRIME(p_mpz)==0);
 
+	// find prime q
+	unsigned char q_char[keyBytes];
+	NEWZ(q_mpz);
 	do {
 		randBytes(q_char, keyBytes);
 		BYTES2Z(q_mpz, q_char, keyBytes);
 	} while(ISPRIME(q_mpz)==0);
 
+	// find n = (p-1)(q-1)
 	NEWZ(n_mpz);
 	mpz_mul(n_mpz, p_mpz, q_mpz);
 
-	// modulus is totient(n) = (p-1)(q-1)
+	// find the totient(n) = (p-1)(q-1)
+	// which is used as a modulus
+	// when finding to find e
 	NEWZ(p_1_mpz);
 	NEWZ(q_1_mpz);
-	NEWZ(modulus);
-	mpz_sub_ui(p_1_mpz, p_mpz, 1);
-	mpz_sub_ui(q_1_mpz, q_mpz, 1); 
-	mpz_mul(modulus, p_1_mpz, q_1_mpz);
-
-	// mpz_mod()
+	NEWZ(totient);
+	mpz_sub_ui(p_1_mpz, p_mpz, 1); //p_1_mpz is (p-1) as mpz
+	mpz_sub_ui(q_1_mpz, q_mpz, 1); //q_1_mpz is (q-1) as mpz
+	mpz_mul(totient, p_1_mpz, q_1_mpz);
 
 	// find e = 2^x +1 
-	// where  16 < x < 20 and gcd(e,modulus)=1
+	// where  16 < x < 20 and gcd(e,totient)=1
 	NEWZ(e_1_mpz); //e-1 a.k.a. 2^x as mpz
 	NEWZ(e_mpz); //e a.k.a. 2^x +1 as mpz
 	NEWZ(gcd_mpz);
@@ -98,12 +102,12 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 		rand_exponent = rand() + 16;
 		mpz_ui_pow_ui(e_1_mpz, 2, rand_exponent);
 		mpz_add_ui(e_mpz, e_1_mpz, 1);
-		mpz_gcd(gcd_mpz, e_mpz, modulus);
+		mpz_gcd(gcd_mpz, e_mpz, totient); //e and totient(n) must be coprime
 	}
-	while (mpz_cmp_ui(gcd_mpz,1)!=0) //while the modulus and gcd are not coprime, run the generator again.
+	while (mpz_cmp_ui(gcd_mpz,1)!=0); //while the totient and gcd are not coprime, try again
 
 	NEWZ(d_mpz);
-	mpz_invert(d_mpz, e_mpz, modulus);
+	mpz_invert(d_mpz, e_mpz, totient);
 
 	mpz_set(K->p,p_mpz);
 	mpz_set(K->q,q_mpz);
@@ -111,7 +115,9 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_set(K->e,e_mpz);
 	mpz_set(K->d,d_mpz);
 
-	mpz_clears(p_mpz, q_mpz, n_mpz, e_mpz, d_mpz, gcd_mpz, e_1_mpz, modulus, p_1_mpz, q_1_mpz);
+// TODO: fix memory leak by addressing the segmentation fault that results from the following 
+// line of code.
+//	mpz_clears(p_mpz, q_mpz, n_mpz, e_mpz, d_mpz, gcd_mpz, e_1_mpz, totient, p_1_mpz, q_1_mpz);
 
 	return 0;
 }
@@ -119,15 +125,34 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 size_t rsa_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		RSA_KEY* K)
 {
-	/* TODO: write this.  Use BYTES2Z to get integers, and then
-	 * Z2BYTES to write the output buffer. */
-	return 0; /* TODO: return should be # bytes written */
+	// m_mpz is the plaintext message, m, as an mpz type
+	NEWZ(m_mpz);
+	BYTES2Z(m_mpz,inBuf,len);
+
+	// c_mpz is the ciphertext, c, as an mpz type
+	mpz_powm(c_mpz, m_mpz, K->e, K->n); // c = m^e mod n
+
+	//note: len is reassigned to number of bytes successfully written by Z2BYTES()
+	// Z2BYTES() reassignes outbuf as pointer to ciphertext in bytes
+	Z2BYTES(outBuf, len, c_mpz); 
+
+	return len; //returns no. bytes written
 }
 size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		RSA_KEY* K)
 {
-	/* TODO: write this.  See remarks above. */
-	return 0;
+	// m_mpz is the plaintext message, m, as an mpz type
+	NEWZ(c_mpz);
+	BYTES2Z(c_mpz,inBuf,len);
+
+	// c_mpz is the ciphertext, c, as an mpz type
+	mpz_powm(m_mpz, c_mpz, K->e, K->n); // c = m^e mod n
+
+	//note: len is reassigned to number of bytes successfully written by Z2BYTES()
+	// Z2BYTES() reassignes outbuf as pointer to plaintext in bytes
+	Z2BYTES(outBuf, len, m_mpz); 
+
+	return len; //returns no. bytes written
 }
 
 size_t rsa_numBytesN(RSA_KEY* K)
