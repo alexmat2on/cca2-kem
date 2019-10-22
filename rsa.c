@@ -99,7 +99,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	NEWZ(gcd_mpz);
 	unsigned int rand_exponent;
 	do {
-		rand_exponent = rand() + 16;
+		rand_exponent = rand()%5 + 16;
 		mpz_ui_pow_ui(e_1_mpz, 2, rand_exponent);
 		mpz_add_ui(e_mpz, e_1_mpz, 1);
 		mpz_gcd(gcd_mpz, e_mpz, totient); //e and totient(n) must be coprime
@@ -117,7 +117,10 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 
 // TODO: fix memory leak by addressing the segmentation fault that results from the following 
 // line of code.
-//	mpz_clears(p_mpz, q_mpz, n_mpz, e_mpz, d_mpz, gcd_mpz, e_1_mpz, totient, p_1_mpz, q_1_mpz);
+	mpz_clear(p_mpz);   mpz_clear(q_mpz);   mpz_clear(n_mpz);
+	mpz_clear(e_mpz);   mpz_clear(d_mpz);   mpz_clear(gcd_mpz);
+	mpz_clear(e_1_mpz); mpz_clear(totient); mpz_clear(p_1_mpz);
+	mpz_clear(q_1_mpz);
 
 	return 0;
 }
@@ -125,33 +128,46 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 size_t rsa_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		RSA_KEY* K)
 {
+			fprintf(stderr, "NEWZ(m_mpz);\n"); //////DAVID
+
 	// m_mpz is the plaintext message, m, as an mpz type
 	NEWZ(m_mpz);
 	BYTES2Z(m_mpz,inBuf,len);
 
+			fprintf(stderr, "NEWZ(c_mpz);\n"); //////DAVID
+
 	// c_mpz is the ciphertext, c, as an mpz type
+	NEWZ(c_mpz);
 	mpz_powm(c_mpz, m_mpz, K->e, K->n); // c = m^e mod n
+
+			fprintf(stderr, "Z2BYTES(outBuf, len, c_mpz);\n"); //////DAVID
 
 	//note: len is reassigned to number of bytes successfully written by Z2BYTES()
 	// Z2BYTES() reassignes outbuf as pointer to ciphertext in bytes
 	Z2BYTES(outBuf, len, c_mpz); 
 
+	mpz_clear(c_mpz);
+	mpz_clear(m_mpz);
 	return len; //returns no. bytes written
 }
+
 size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		RSA_KEY* K)
 {
-	// m_mpz is the plaintext message, m, as an mpz type
+	// c_mpz is the ciphertext, c, as an mpz type
 	NEWZ(c_mpz);
 	BYTES2Z(c_mpz,inBuf,len);
 
-	// c_mpz is the ciphertext, c, as an mpz type
-	mpz_powm(m_mpz, c_mpz, K->e, K->n); // c = m^e mod n
+	// m_mpz is the plaintext, m, as an mpz type
+	NEWZ(m_mpz);
+	mpz_powm(m_mpz, c_mpz, K->d, K->n); // m = m^d mod n
 
 	//note: len is reassigned to number of bytes successfully written by Z2BYTES()
 	// Z2BYTES() reassignes outbuf as pointer to plaintext in bytes
-	Z2BYTES(outBuf, len, m_mpz); 
+	Z2BYTES(outBuf, len, m_mpz);
 
+	mpz_clear(c_mpz);
+	mpz_clear(m_mpz);
 	return len; //returns no. bytes written
 }
 
