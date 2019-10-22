@@ -128,19 +128,13 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 size_t rsa_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		RSA_KEY* K)
 {
-			fprintf(stderr, "NEWZ(m_mpz);\n"); //////DAVID
-
 	// m_mpz is the plaintext message, m, as an mpz type
 	NEWZ(m_mpz);
 	BYTES2Z(m_mpz,inBuf,len);
 
-			fprintf(stderr, "NEWZ(c_mpz);\n"); //////DAVID
-
 	// c_mpz is the ciphertext, c, as an mpz type
 	NEWZ(c_mpz);
 	mpz_powm(c_mpz, m_mpz, K->e, K->n); // c = m^e mod n
-
-			fprintf(stderr, "Z2BYTES(outBuf, len, c_mpz);\n"); //////DAVID
 
 	//note: len is reassigned to number of bytes successfully written by Z2BYTES()
 	// Z2BYTES() reassignes outbuf as pointer to ciphertext in bytes
