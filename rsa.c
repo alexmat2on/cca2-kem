@@ -52,7 +52,7 @@ int zFromFile(FILE* f, mpz_t x)
 int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 {
 	rsa_initKey(K);
-	/* TODO: write this.  Use the prf to get random byte strings of
+	/* Use the prf to get random byte strings of
 	 * the right length, and then test for primality (see the ISPRIME
 	 * macro above).  Once you've found the primes, set up the other
 	 * pieces of the key ({en,de}crypting exponents, and n=pq). */
@@ -75,8 +75,43 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 		BYTES2Z(q_mpz, q_char, keyBytes);
 	} while(ISPRIME(q_mpz)==0);
 
+	NEWZ(n_mpz);
+	mpz_mul(n_mpz, p_mpz, q_mpz);
+
+	// modulus is totient(n) = (p-1)(q-1)
+	NEWZ(p_1_mpz);
+	NEWZ(q_1_mpz);
+	NEWZ(modulus);
+	mpz_sub_ui(p_1_mpz, p_mpz, 1);
+	mpz_sub_ui(q_1_mpz, q_mpz, 1); 
+	mpz_mul(modulus, p_1_mpz, q_1_mpz);
+
+	// mpz_mod()
+
+	// find e = 2^x +1 
+	// where  16 < x < 20 and gcd(e,modulus)=1
+	NEWZ(e_1_mpz); //e-1 a.k.a. 2^x as mpz
+	NEWZ(e_mpz); //e a.k.a. 2^x +1 as mpz
+	NEWZ(gcd_mpz);
+	unsigned int rand_exponent;
+	do {
+		rand_exponent = rand() + 16;
+		mpz_ui_pow_ui(e_1_mpz, 2, rand_exponent);
+		mpz_add_ui(e_mpz, e_1_mpz, 1);
+		mpz_gcd(gcd_mpz, e_mpz, modulus);
+	}
+	while (mpz_cmp_ui(gcd_mpz,1)!=0) //while the modulus and gcd are not coprime, run the generator again.
+
+	NEWZ(d_mpz);
+	mpz_invert(d_mpz, e_mpz, modulus);
+
 	mpz_set(K->p,p_mpz);
 	mpz_set(K->q,q_mpz);
+	mpz_set(K->n,n_mpz);
+	mpz_set(K->e,e_mpz);
+	mpz_set(K->d,d_mpz);
+
+	mpz_clears(p_mpz, q_mpz, n_mpz, e_mpz, d_mpz, gcd_mpz, e_1_mpz, modulus, p_1_mpz, q_1_mpz);
 
 	return 0;
 }
