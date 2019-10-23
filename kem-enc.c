@@ -81,6 +81,13 @@ void create_hash(char* output, unsigned char* input, size_t length) {
     return;
 }
 
+void generate_IV(unsigned char* IV) {
+	size_t i;
+	for (i = 0; i < 16; i++) {
+		IV[i] = i;
+	}
+}
+
 int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 {
 	/* TODO: encapsulate random symmetric key (SK) using RSA and SHA256;
@@ -90,18 +97,11 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	//generate random key string 'x'
 	unsigned char* x = malloc(HASHLEN);
 	/* ...fill x with random bytes (which fit in an RSA plaintext)... */
-	random_keygen(x,HASHLEN);
-
-	//generate symmetric key
-	SKE_KEY SK;
-	ske_keyGen(&SK,x,HASHLEN);
-
-	//Initialize K as an RSA key
-	//rsa_keyGen(HASHLEN, K);
+	randBytes(x, 32);
 
 	//encrypt x using RSA
-	unsigned char* x_encrypted = malloc(HASHLEN);
-	rsa_encrypt(x_encrypted, x, HASHLEN, K);
+	unsigned char* x_encrypted = malloc(32);
+	size_t rsa_ct_len = rsa_encrypt(x_encrypted, x, 32, K);
 
 	//Hash x using SHA256
 	char x_hashed[65];
@@ -109,18 +109,34 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	//printf("%s\n%s\n", x, x_hashed);
 
 	//Concatenate x_encrypted and x_hashed to form KEM
-	char* kem = malloc(sizeof x_encrypted + sizeof x_hashed);
-	sprintf(kem, "%s%s", x_encrypted, x_hashed);
-	printf("%s\n%s\n%s\n", x_encrypted, x_hashed, kem);
+	unsigned char* kem = malloc(rsa_ct_len + HASHLEN);
+	buffer_concat(x_encrypted, rsa_ct_len, (unsigned char*) x_hashed, HASHLEN, kem);
+
+	//generate symmetric key
+	SKE_KEY SK;
+	ske_keyGen(&SK,x,32);
 
 	//Encrypt fnIn with SK
-	ske_encrypt_file(fnOut, fnIn, &SK, x, 0);
+	unsigned char IV[16];
+	generate_IV(IV);
+	FILE* ct_file = fopen("fnInCt", "w");  //create tmp file to store ciphertext
+	fclose(ct_file);
+	ske_encrypt_file("fnInCt", fnIn, &SK, IV, 0);
 
-	//Concatenate KEM and ciphertext from ^^
-
-
+	//Concatenate KEM and ciphertext from ske_encrypt_file
 	//Write to fnOut
+	FILE* out_file = fopen(fnOut, "w");
+	ct_file = fopen("fnInCt", "r");
 
+	fputs((const char*)kem, out_file); // write KEM to fnOut
+
+	char* ct = malloc(32);
+	fgets(ct, 32, ct_file);
+	fputs(ct, out_file); //write CT to fnOut
+
+	fclose(out_file);
+	fclose(ct_file);
+	remove("fnInCt");
 
 	return 0;
 }
@@ -202,9 +218,14 @@ int main(int argc, char *argv[]) {
 	/* TODO: finish this off.  Be sure to erase sensitive data
 	 * like private keys when you're done with them (see the
 	 * rsa_shredKey function). */
+
+	//Initialize K as an RSA key
+	RSA_KEY* K = malloc(sizeof(RSA_KEY));
+	rsa_keyGen(nBits, K);
+
 	switch (mode) {
 		case ENC:
-			kem_encrypt(NULL, NULL, NULL);
+			kem_encrypt(fnOut, fnIn, K);
 		case DEC:
 		case GEN:
 		default:
