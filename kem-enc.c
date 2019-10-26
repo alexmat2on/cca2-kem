@@ -8,6 +8,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <openssl/sha.h>
+#include <time.h>
 
 #include "ske.h"
 #include "rsa.h"
@@ -52,11 +53,94 @@ enum modes {
 
 #define HASHLEN 32 /* for sha256 */
 
+void random_keygen(unsigned char* SK, size_t length) {
+	srand(time(0));
+    char alphabet[] = "0123456789"
+                     "abcdefghijklmnopqrstuvwxyz"
+                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    while (length-- > 0) {
+        size_t index = (double) rand() / RAND_MAX * (sizeof alphabet - 1);
+        *SK++ = alphabet[index];
+    }
+}
+
+void create_hash(unsigned char* output, unsigned char* input, size_t length) {
+	//unsigned char hash[SHA256_DIGEST_LENGTH];
+	SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    SHA256_Update(&sha256, input, length);
+    SHA256_Final(output, &sha256);
+
+    /*int i = 0;
+    for(i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+        sprintf(output + (i * 2), "%02x", hash[i]);
+    }*/
+    //output[64] = 0;
+    return;
+}
+
+void generate_IV(unsigned char* IV) {
+	size_t i;
+	for (i = 0; i < 16; i++) {
+		IV[i] = i;
+	}
+}
+
 int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 {
 	/* TODO: encapsulate random symmetric key (SK) using RSA and SHA256;
 	 * encrypt fnIn with SK; concatenate encapsulation and cihpertext;
 	 * write to fnOut. */
+
+	size_t rsa_key_size = rsa_numBytesN(K);
+
+	//generate random key string 'x'
+	unsigned char* x = malloc(rsa_key_size);
+	/* ...fill x with random bytes (which fit in an RSA plaintext)... */
+	randBytes(x, rsa_key_size);
+
+	//encrypt x using RSA
+	unsigned char* x_encrypted = malloc(rsa_key_size);
+	size_t rsa_ct_len = rsa_encrypt(x_encrypted, x, rsa_key_size, K);
+
+	//Hash x using SHA256
+	unsigned char* x_hashed = malloc(HASHLEN);
+	create_hash(x_hashed, x, rsa_key_size);
+	//printf("%s\n%s\n", x, x_hashed);
+
+	//Concatenate x_encrypted and x_hashed to form KEM
+	unsigned char* kem = malloc(rsa_ct_len + HASHLEN);
+	buffer_concat(x_encrypted, rsa_ct_len, x_hashed, HASHLEN, kem);
+
+	//Generate symmetric key
+	SKE_KEY SK;
+	ske_keyGen(&SK,x,rsa_key_size);
+
+	//Encrypt fnIn with SK
+	unsigned char* IV = malloc(16);
+	generate_IV(IV);
+	FILE* ct_file = fopen("/tmp/fnInCt", "wb");  //create tmp file to store E(fnIn)
+	fclose(ct_file);
+	ske_encrypt_file("/tmp/fnInCt", fnIn, &SK, IV, 0);  //write E(fnIn) to file
+
+
+	//Write concatenation of KEM and ciphertext to fnOut
+	FILE* out_file = fopen(fnOut, "w");
+	fwrite( kem, 1, rsa_ct_len + HASHLEN, out_file); // write KEM to fnOut
+	ct_file = fopen("/tmp/fnInCt", "r"); //read ct from ct_file and write it to out_file
+	fseek(ct_file, 0, SEEK_END);
+	size_t ct_len = ftell(ct_file);
+	rewind(ct_file);
+	unsigned char* ct = malloc(ct_len);
+	fread(ct, 1, ct_len, ct_file);
+	fwrite(ct, 1, ct_len, out_file); //write CT to fnOut
+
+	fclose(out_file);
+	fclose(ct_file);
+	//remove("/tmp/fnInCt");
+
 	return 0;
 }
 
@@ -64,9 +148,39 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 int kem_decrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 {
 	/* TODO: write this. */
-	/* step 1: recover the symmetric key */
+	/* step 1: recover the symmetric key (x) */
+	FILE* ct_file = fopen(fnIn, "r");
+	fseek(ct_file, 0L, SEEK_END);
+	size_t ct_len = ftell(ct_file);
+	rewind(ct_file);
+	unsigned char* ct_f_in = malloc((ct_len) * sizeof(*ct_f_in)); //size of ct_f_in (RSA(x) + H(x) + ske(m))
+	fread(ct_f_in, ct_len, 1, ct_file);
+
+	//parse rsa ciphertext from fnIn
+	size_t rsa_ct_len = rsa_numBytesN(K);
+	unsigned char* x_encrypted = malloc(rsa_ct_len);
+	memcpy(x_encrypted, ct_f_in, rsa_ct_len);
+
+	//decrypt x_encrypted to recover symmetric key (x)
+	unsigned char* x = malloc(rsa_ct_len);
+	rsa_decrypt(x, x_encrypted, rsa_ct_len, K);
+
 	/* step 2: check decapsulation */
+	//hash x and compare with H(x) from fnIn
+	unsigned char* x_hashed_candidate = malloc(HASHLEN);
+	create_hash(x_hashed_candidate, x, HASHLEN);
+	unsigned char* x_hashed = malloc(HASHLEN);
+	memcpy(x_hashed, ct_f_in+rsa_ct_len, HASHLEN);
+	if(memcmp(x_hashed_candidate, x_hashed, HASHLEN) != 0){
+		fprintf(stderr, "decapsulation check failed...\n");
+		return -1;
+	}
+
 	/* step 3: derive key from ephemKey and decrypt data. */
+	SKE_KEY SK;	
+	ske_keyGen(&SK,x,32);
+	ske_decrypt_file(fnOut, fnIn, &SK, 0);
+
 	return 0;
 }
 
@@ -137,10 +251,39 @@ int main(int argc, char *argv[]) {
 	/* TODO: finish this off.  Be sure to erase sensitive data
 	 * like private keys when you're done with them (see the
 	 * rsa_shredKey function). */
+
+	RSA_KEY* K = malloc(sizeof(RSA_KEY));
+	//rsa_initKey(K);
+
 	switch (mode) {
 		case ENC:
+		{
+			FILE* rsa_pub = fopen(fnKey, "rb");
+			rsa_readPublic(rsa_pub, K);
+			kem_encrypt(fnOut, fnIn, K);
+			rsa_shredKey(K);
+			break;
+		}
 		case DEC:
+		{
+			FILE* rsa_pvt = fopen(fnKey, "rb");
+			rsa_readPrivate(rsa_pvt, K);
+			kem_decrypt(fnOut, fnIn, K);
+			rsa_shredKey(K);
+			break;
+		}
 		case GEN:
+		{
+			//Generate and store RSA key K in key files
+			rsa_keyGen(nBits, K);
+			FILE* rsa_pvt = fopen(fnOut, "wb");
+			strcat(fnOut, ".pub");
+			FILE* rsa_pub = fopen(fnOut, "wb");
+			rsa_writePrivate(rsa_pvt, K);
+			rsa_writePublic(rsa_pub, K);
+			rsa_shredKey(K);
+			break;
+		}
 		default:
 			return 1;
 	}
