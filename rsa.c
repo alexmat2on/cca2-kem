@@ -14,22 +14,47 @@
 #define Z2BYTES(buf,len,x) mpz_export(buf,&len,-1,1,0,0,x)
 
 /* utility function for read/write mpz_t with streams: */
-int zToFile(FILE* f, mpz_t x)
-{
-	size_t i,len = mpz_size(x)*sizeof(mp_limb_t);
-	unsigned char* buf = malloc(len);
-	/* force little endian-ness: */
-	for (i = 0; i < 8; i++) {
-		unsigned char b = (len >> 8*i) % 256;
-		fwrite(&b,1,1,f);
-	}
-	Z2BYTES(buf,len,x);
-	fwrite(buf,1,len,f);
-	/* kill copy in buffer, in case this was sensitive: */
-	memset(buf,0,len);
-	free(buf);
-	return 0;
+
+// -- original zToFile from skeleton --
+// Z2BYTES rewrites "len".
+// Results in size buffer miscalculation, causing gmp overflow while reading K from file.
+
+// int zToFile(FILE* f, mpz_t x)
+// {
+// 	size_t i,len = mpz_size(x)*sizeof(mp_limb_t);
+// 	unsigned char* buf = malloc(len);
+// 	/* force little endian-ness: */
+// 	for (i = 0; i < 8; i++) {
+// 		unsigned char b = (len >> 8*i) % 256;
+// 		fwrite(&b,1,1,f);
+// 	}
+// 	Z2BYTES(buf,len,x);
+// 	fwrite(buf,1,len,f);
+// 	/* kill copy in buffer, in case this was sensitive: */
+// 	memset(buf,0,len);
+// 	free(buf);
+// 	return 0;
+// }
+
+// -- Fix for original zToFile from skeleton --
+int zToFile(FILE* f, mpz_t x) {
+  size_t i, len = mpz_size(x) * sizeof(mp_limb_t);
+  size_t templen = len; 	// <--- added templen to make size buffer persistent
+  unsigned char* buf = malloc(len);
+  /* force little endian-ness: */
+  for (i = 0; i < 8; i++) {
+    unsigned char b = (len >> 8 * i) % 256;
+    fwrite(&b, 1, 1, f);
+  }
+  memset(buf, 0, len);
+  Z2BYTES(buf, templen, x);
+  fwrite(buf, 1, len, f);
+  /* kill copy in buffer, in case this was sensitive: */
+  memset(buf, 0, len);
+  free(buf);
+  return 0;
 }
+
 int zFromFile(FILE* f, mpz_t x)
 {
 	size_t i,len=0;
