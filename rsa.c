@@ -60,7 +60,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	rsa_initKey(K);
 
 	// character array length is counted in bytes, not bits
-	size_t keyBytes = keyBits/4;
+	size_t keyBytes = keyBits/4; // whaatt??? if we divide by 8, which seems correct, then readFromFile crashes
 
 	// find prime p
 	unsigned char p_char[keyBytes];
@@ -92,7 +92,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_sub_ui(q_1_mpz, q_mpz, 1); //q_1_mpz is (q-1) as mpz
 	mpz_mul(totient, p_1_mpz, q_1_mpz);
 
-	// find e = 2^x +1 
+	// find e = 2^x +1
 	// where  16 < x < 20 and gcd(e,totient)=1
 	NEWZ(e_1_mpz); //e-1 a.k.a. 2^x as mpz
 	NEWZ(e_mpz); //e a.k.a. 2^x +1 as mpz
@@ -115,7 +115,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_set(K->e,e_mpz);
 	mpz_set(K->d,d_mpz);
 
-// TODO: fix memory leak by addressing the segmentation fault that results from the following 
+// TODO: fix memory leak by addressing the segmentation fault that results from the following
 // line of code.
 	mpz_clear(p_mpz);   mpz_clear(q_mpz);   mpz_clear(n_mpz);
 	mpz_clear(e_mpz);   mpz_clear(d_mpz);   mpz_clear(gcd_mpz);
@@ -138,7 +138,7 @@ size_t rsa_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 
 	//note: len is reassigned to number of bytes successfully written by Z2BYTES()
 	// Z2BYTES() reassignes outbuf as pointer to ciphertext in bytes
-	Z2BYTES(outBuf, len, c_mpz); 
+	Z2BYTES(outBuf, len, c_mpz);
 
 	mpz_clear(c_mpz);
 	mpz_clear(m_mpz);

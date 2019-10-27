@@ -5,7 +5,7 @@ TARGETS := kem-enc
 TSOURCE := $(wildcard tests/*.c)
 TESTS   := $(TSOURCE:.c=)
 
-COMMON   := -O2 -Wall
+COMMON   := -O0 -Wall #Use -O0 to avoid optimizations -- helpful for debugging purposes
 CFLAGS   := $(CFLAGS) $(COMMON)
 CC       := gcc
 LDADD    := -lcrypto -lssl -lgmp

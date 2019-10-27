@@ -104,19 +104,21 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		perror("Could't get input file size.\n");
 		return -1;
 	}
-
-	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
 	size_t ctlen = ske_getOutputLen(sb1.st_size);
+	size_t outfilelen = ctlen + offset_out;
+
+	int fdout = open(fnout, O_RDWR|O_CREAT|O_APPEND, S_IRWXU);
 	write(fdout, "tmp", ctlen); // Need to write this much space to fdout -- otherwise memory access error.
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
-	char* output_map = mmap(NULL, ctlen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
+	char* output_map = mmap(NULL, outfilelen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
 
 	size_t len = sb1.st_size + 1; /* +1 to include null char */
-	ske_encrypt((unsigned char*)output_map, (unsigned char*)input_map, len, K, IV);
+	// Start encrypting at the offset_out
+	ske_encrypt((unsigned char*)(output_map+offset_out), (unsigned char*)input_map, len, K, IV);
 
 	munmap(input_map, sb1.st_size);
-	munmap(output_map,ctlen);
+	munmap(output_map, outfilelen);
 
 	close(fdin);
 	close(fdout);
