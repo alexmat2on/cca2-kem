@@ -97,21 +97,21 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	size_t rsa_key_size = rsa_numBytesN(K);
 
 	//generate random key string 'x'
-	unsigned char x[rsa_key_size];// = malloc(rsa_key_size);
+	unsigned char x[rsa_key_size];
 	/* ...fill x with random bytes (which fit in an RSA plaintext)... */
 	randBytes(x, rsa_key_size);
 
 	//encrypt x using RSA
-	unsigned char x_encrypted[rsa_key_size];// = malloc(rsa_key_size);
+	unsigned char x_encrypted[rsa_key_size];
 	size_t rsa_ct_len = rsa_encrypt(x_encrypted, x, rsa_key_size, K);
 
 	//Hash x using SHA256
-	unsigned char x_hashed[HASHLEN];// = malloc(HASHLEN);
+	unsigned char x_hashed[HASHLEN];
 	create_hash(x_hashed, x, rsa_key_size);
 	//printf("%s\n%s\n", x, x_hashed);
 
 	//Concatenate x_encrypted and x_hashed to form KEM
-	unsigned char kem[rsa_ct_len + HASHLEN];// = malloc(rsa_ct_len + HASHLEN);
+	unsigned char kem[rsa_ct_len + HASHLEN];
 	buffer_concat(x_encrypted, rsa_ct_len, x_hashed, HASHLEN, kem);
 
 	//Write concatenation of KEM and ciphertext to fnOut
@@ -124,7 +124,7 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	ske_keyGen(&SK,x,rsa_key_size);
 
 	//Encrypt fnIn with SK
-	unsigned char IV[16];// = malloc(16)q;
+	unsigned char IV[16];
 	generate_IV(IV);
 	ske_encrypt_file(fnOut, fnIn, &SK, IV, rsa_ct_len + HASHLEN);  //write E(fnIn) to file
 
@@ -140,23 +140,23 @@ int kem_decrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	fseek(ct_file, 0L, SEEK_END);
 	size_t ct_len = ftell(ct_file);
 	rewind(ct_file);
-	unsigned char ct_f_in[ct_len];// = malloc((ct_len) * sizeof(*ct_f_in)); //size of ct_f_in (RSA(x) + H(x) + ske(m))
+	unsigned char ct_f_in[ct_len]; //size of ct_f_in (RSA(x) + H(x) + ske(m))
 	fread(ct_f_in, ct_len, 1, ct_file);
 
 	//parse rsa ciphertext from fnIn
 	size_t rsa_ct_len = rsa_numBytesN(K);
-	unsigned char x_encrypted[rsa_ct_len];// = malloc(rsa_ct_len);
+	unsigned char x_encrypted[rsa_ct_len];
 	memcpy(x_encrypted, ct_f_in, rsa_ct_len);
 
 	//decrypt x_encrypted to recover symmetric key (x)
-	unsigned char x[rsa_ct_len];// = malloc(rsa_ct_len);
+	unsigned char x[rsa_ct_len];
 	rsa_decrypt(x, x_encrypted, rsa_ct_len, K);
 
 	/* step 2: check decapsulation */
 	//hash x and compare with H(x) from fnIn
-	unsigned char x_hashed_candidate[HASHLEN];// = malloc(HASHLEN);
+	unsigned char x_hashed_candidate[HASHLEN];
 	create_hash(x_hashed_candidate, x, HASHLEN);
-	unsigned char x_hashed[HASHLEN];// = malloc(HASHLEN);
+	unsigned char x_hashed[HASHLEN];
 	memcpy(x_hashed, ct_f_in+rsa_ct_len, HASHLEN);
 	if(memcmp(x_hashed_candidate, x_hashed, HASHLEN) != 0){
 		fprintf(stderr, "decapsulation check failed...\n");
