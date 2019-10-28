@@ -85,7 +85,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	rsa_initKey(K);
 
 	// character array length is counted in bytes, not bits
-	size_t keyBytes = keyBits/4; // whaatt??? if we divide by 8, which seems correct, then readFromFile crashes
+	size_t keyBytes = keyBits/8; // whaatt??? if we divide by 8, which seems correct, then readFromFile crashes
 
 	// find prime p
 	unsigned char p_char[keyBytes];
