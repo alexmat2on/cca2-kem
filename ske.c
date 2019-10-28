@@ -37,7 +37,10 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 	/* TODO: write this.  If entropy is given, apply a KDF to it to get
 	 * the keys (something like HMAC-SHA512 with KDF_KEY will work).
 	 * If entropy is null, just get a random key (you can use the PRF). */
+
+	setSeed(entropy, entLen);  //seed randBytes function so hmacKey is persistent through encrypt and decrypt
 	randBytes(K->hmacKey, KLEN_SKE);
+
 	if (!entropy)	randBytes(K->aesKey, KLEN_SKE);
 	else {
 		HMAC(EVP_sha512(),KDF_KEY,HM_LEN,entropy,entLen,K->aesKey,NULL);
@@ -173,14 +176,14 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	}
 
 	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
-	size_t plainLen = sb1.st_size - AES_BLOCK_SIZE - HM_LEN;
+	size_t plainLen = sb1.st_size - offset_in - AES_BLOCK_SIZE - HM_LEN;
 	write(fdout, "tmp", plainLen); // Need to write this much space to fdout -- otherwise memory access error.
 
 	char* input_map = mmap(NULL, sb1.st_size, PROT_READ, MAP_PRIVATE, fdin, 0);
 	char* output_map = mmap(NULL, plainLen, PROT_READ|PROT_WRITE, MAP_SHARED, fdout, 0);
 
-	size_t len = sb1.st_size + 1; /* +1 to include null char */
-	ske_decrypt((unsigned char*)output_map, (unsigned char*)input_map, len, K);
+	size_t len = sb1.st_size - offset_in + 1; /* +1 to include null char */
+	ske_decrypt((unsigned char*)output_map, (unsigned char*)input_map+offset_in, len, K);
 
 	munmap(input_map, sb1.st_size);
 	munmap(output_map,plainLen);
