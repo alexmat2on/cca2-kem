@@ -73,12 +73,6 @@ void create_hash(unsigned char* output, unsigned char* input, size_t length) {
     SHA256_Update(&sha256, input, length);
     SHA256_Final(output, &sha256);
 
-    /*int i = 0;
-    for(i = 0; i < SHA256_DIGEST_LENGTH; i++)
-    {
-        sprintf(output + (i * 2), "%02x", hash[i]);
-    }*/
-    //output[64] = 0;
     return;
 }
 
@@ -103,30 +97,18 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	randBytes(x, rsa_key_size);
 	x[rsa_key_size-1] = 0;
 
-	/*fprintf(stderr, "\noriginal x:\n");
-	print_hex(x, rsa_key_size);*/
-
 	//encrypt x using RSA
 	unsigned char x_encrypted[rsa_key_size];
 	size_t rsa_ct_len = rsa_encrypt(x_encrypted, x, rsa_key_size, K);
-
-	/*fprintf(stderr, "\noriginal x_encrypted:\n");
-	print_hex(x_encrypted, rsa_key_size);*/
 
 	//Hash x using SHA256
 	unsigned char x_hashed[HASHLEN];
 	create_hash(x_hashed, x, rsa_key_size);
 
-	/*fprintf(stderr, "\noriginal x_hashed:\n");
-	print_hex(x_hashed, HASHLEN);*/
-
 	//Concatenate x_encrypted and x_hashed to form KEM
 	size_t kem_size = rsa_ct_len + HASHLEN;
 	unsigned char kem[kem_size];
 	buffer_concat(x_encrypted, rsa_ct_len, x_hashed, HASHLEN, kem);
-
-	/*fprintf(stderr, "\noriginal kem:\n");
-	print_hex(kem, kem_size);*/
 
 	//Write concatenation of KEM and ciphertext to fnOut
 	FILE* out_file = fopen(fnOut, "wb");
@@ -161,43 +143,27 @@ int kem_decrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	fread(ct_buf, ct_len, 1, ct_file);
 	fclose(ct_file);
 
-	/*fprintf(stderr, "\nloaded ct:\n");
-	print_hex(ct_buf, ct_len);*/
-
 	//parse rsa ciphertext from fnIn
 	size_t rsa_ct_len = rsa_numBytesN(K);
 	unsigned char x_encrypted[rsa_ct_len];
 	memcpy(x_encrypted, ct_buf, rsa_ct_len);
 
-	/*fprintf(stderr, "\ncandidate x_encrypted:\n");
-	print_hex(x_encrypted, rsa_ct_len);*/
-
 	//decrypt x_encrypted to recover symmetric key (x)
 	unsigned char x[rsa_ct_len];
 	rsa_decrypt(x, x_encrypted, rsa_ct_len, K);
-
-	/*fprintf(stderr, "\ncandidate x:\n");
-	print_hex(x, rsa_ct_len);*/
 
 	/* step 2: check decapsulation */
 	//hash x and compare with H(x) from fnIn
 	unsigned char x_hashed_candidate[HASHLEN];
 	create_hash(x_hashed_candidate, x, rsa_ct_len);
 
-	/*fprintf(stderr, "\ncandidate x_hashed:\n");
-	print_hex(x_hashed_candidate, HASHLEN);*/
-
 	unsigned char x_hashed[HASHLEN];
 	memcpy(x_hashed, ct_buf+rsa_ct_len, HASHLEN);
 
-	/*fprintf(stderr, "\nloaded x_hashed:\n");
-	print_hex(x_hashed, HASHLEN);*/
-
+	//if decapsulation fails, exit
 	if(memcmp(x_hashed_candidate, x_hashed, HASHLEN) != 0){
 		fprintf(stderr, "decapsulation check failed...\n");
 		return -1;
-	}else{
-		fprintf(stderr, "decapsulation check succeeded.\n");
 	}
 
 	/* step 3: derive key from ephemKey and decrypt data. */
