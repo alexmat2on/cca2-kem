@@ -36,6 +36,24 @@
 // 	return 0;
 // }
 
+// int zToFile(FILE* f, mpz_t x)
+// {
+// 	size_t i,len = mpz_size(x)*sizeof(mp_limb_t);
+// 	/* NOTE: len may overestimate the number of bytes actually required. */
+// 	unsigned char* buf = malloc(len);
+// 	Z2BYTES(buf,len,x);
+// 	 force little endian-ness: 
+// 	for (i = 0; i < 8; i++) {
+// 		unsigned char b = (len >> 8*i) % 256;
+// 		fwrite(&b,1,1,f);
+// 	}
+// 	fwrite(buf,1,len,f);
+// 	/* kill copy in buffer, in case this was sensitive: */
+// 	memset(buf,0,len);
+// 	free(buf);
+// 	return 0;
+// }
+
 // -- Fix for original zToFile from skeleton --
 int zToFile(FILE* f, mpz_t x) {
   size_t i, len = mpz_size(x) * sizeof(mp_limb_t);
@@ -85,7 +103,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	rsa_initKey(K);
 
 	// character array length is counted in bytes, not bits
-	size_t keyBytes = keyBits/8; // whaatt??? if we divide by 8, which seems correct, then readFromFile crashes
+	size_t keyBytes = keyBits/16; //divide nBits by 2*8 to get number of bytes in primes p and q
 
 	// find prime p
 	unsigned char p_char[keyBytes];
