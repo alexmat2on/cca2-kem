@@ -175,7 +175,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 		return -1;
 	}
 
-	int fdout = open(fnout, O_RDWR|O_CREAT, S_IRWXU);
+	int fdout = open(fnout, O_RDWR|O_CREAT|O_TRUNC, S_IRWXU);
 	size_t plainLen = sb1.st_size - offset_in - AES_BLOCK_SIZE - HM_LEN;
 	write(fdout, "tmp", plainLen); // Need to write this much space to fdout -- otherwise memory access error.
 
