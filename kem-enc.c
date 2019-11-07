@@ -268,8 +268,6 @@ int main(int argc, char *argv[]) {
 			kem_decrypt(fnOut, fnIn, &K);
 
 			rsa_shredKey(&K);
-			/*remove("/tmp/testkey");
-			remove("/tmp/testkey.pub");*/
 			break;
 		}
 		case GEN:
