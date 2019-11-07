@@ -101,6 +101,7 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	unsigned char x[rsa_key_size];
 	/* ...fill x with random bytes (which fit in an RSA plaintext)... */
 	randBytes(x, rsa_key_size);
+	x[rsa_key_size-1] = 0;
 
 	/*fprintf(stderr, "\noriginal x:\n");
 	print_hex(x, rsa_key_size);*/
@@ -154,10 +155,10 @@ int kem_decrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	FILE* ct_file = fopen(fnIn, "rb");
 	fseek(ct_file, 0L, SEEK_END);
 	size_t ct_len = ftell(ct_file) + 1;
-	rewind(ct_file);
+	fclose(ct_file);
 	unsigned char ct_buf[ct_len]; //size of ct_buf (RSA(x) + H(x) + ske(m))
+	ct_file = fopen(fnIn, "rb");
 	fread(ct_buf, ct_len, 1, ct_file);
-	rewind(ct_file);
 	fclose(ct_file);
 
 	/*fprintf(stderr, "\nloaded ct:\n");
