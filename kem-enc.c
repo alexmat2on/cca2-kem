@@ -67,7 +67,6 @@ void random_keygen(unsigned char* SK, size_t length) {
 }
 
 void create_hash(unsigned char* output, unsigned char* input, size_t length) {
-	//unsigned char hash[SHA256_DIGEST_LENGTH];
 	SHA256_CTX sha256;
     SHA256_Init(&sha256);
     SHA256_Update(&sha256, input, length);
@@ -86,20 +85,25 @@ void generate_IV(unsigned char* IV) {
 int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 {
 	/* TODO: encapsulate random symmetric key (SK) using RSA and SHA256;
-	 * encrypt fnIn with SK; concatenate encapsulation and cihpertext;
+	 * encrypt fnIn with SK; concatenate encapsulation and ciphertext;
 	 * write to fnOut. */
-
+	
+	//setSeed((unsigned char*)"Heha", 5); //force randBytes() to generate "bad" x
+	
 	size_t rsa_key_size = rsa_numBytesN(K);
 
-	//generate random key string 'x'
+	//generate random key string 'x' and encrypt with RSA
 	unsigned char x[rsa_key_size];
-	/* ...fill x with random bytes (which fit in an RSA plaintext)... */
-	randBytes(x, rsa_key_size);
-	x[rsa_key_size-1] = 0;
-
-	//encrypt x using RSA
 	unsigned char x_encrypted[rsa_key_size];
-	size_t rsa_ct_len = rsa_encrypt(x_encrypted, x, rsa_key_size, K);
+	size_t rsa_ct_len = 0;
+	while(rsa_ct_len != rsa_key_size){ //while x does not satisfy RSA length parameter
+
+		randBytes(x, rsa_key_size);
+		x[rsa_key_size-1] = 0; //avoid reduction mod n
+
+		//encrypt x using RSA
+		rsa_ct_len = rsa_encrypt(x_encrypted, x, rsa_key_size, K);
+	}
 
 	//Hash x using SHA256
 	unsigned char x_hashed[HASHLEN];
@@ -246,9 +250,8 @@ int main(int argc, char *argv[]) {
 	RSA_KEY K;
 
 	switch (mode) {
-		case ENC:
+		case ENC: //Encrypt plaintext message to ciphertext
 		{
-			//rsa_initKey(&K);
 			FILE* rsa_pub = fopen(fnKey, "rb");
 			rsa_readPublic(rsa_pub, &K);
 			fclose(rsa_pub);
@@ -258,21 +261,23 @@ int main(int argc, char *argv[]) {
 			rsa_shredKey(&K);
 			break;
 		}
-		case DEC:
+		case DEC: //Decrypt ciphertext to plaintext message
 		{
-			//rsa_initKey(&K);
 			FILE* rsa_pvt = fopen(fnKey, "rb");
 			rsa_readPrivate(rsa_pvt, &K);
 			fclose(rsa_pvt);
 
-			kem_decrypt(fnOut, fnIn, &K);
+			int decapStatus = kem_decrypt(fnOut, fnIn, &K);
+
+			if(decapStatus < 0){ //exit if decapsulation fails
+				return -1;
+			}
 
 			rsa_shredKey(&K);
 			break;
 		}
-		case GEN:
+		case GEN: //Generate and store RSA key K in key files
 		{
-			//Generate and store RSA key K in key files
 			rsa_keyGen(nBits, &K);
 			FILE* rsa_pvt = fopen(fnOut, "wb");
 			strcat(fnOut, ".pub");
