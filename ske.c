@@ -104,7 +104,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	int fdin = open(fnin, O_RDONLY);
 	struct stat sb1;
 	if (fstat(fdin,&sb1) == -1) {
-		perror("Could't get input file size.\n");
+		fprintf(stderr, "Input file does not exist.\n");
 		return -1;
 	}
 	size_t ctlen = ske_getOutputLen(sb1.st_size);

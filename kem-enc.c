@@ -91,7 +91,6 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 
 	//generate random key string 'x' and encrypt with RSA
 	unsigned char x[rsa_key_size];
-	// setSeed((unsigned char*)"Hgha", 5);
 	randBytes(x, rsa_key_size);
 	x[rsa_key_size - 1] = 0; //avoid reduction mod n
 
@@ -110,6 +109,10 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 
 	//Write concatenation of KEM and ciphertext to fnOut
 	FILE* out_file = fopen(fnOut, "wb");
+	if (out_file == NULL) {
+		fprintf(stderr, "KEM output directory not found.\n");
+		return -1;
+	}
 	fwrite(kem, 1, rsa_ct_len + HASHLEN, out_file); // write KEM to fnOut
 	fclose(out_file);
 
@@ -133,6 +136,10 @@ int kem_decrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 
 	//Read fnIn into buffer
 	FILE* ct_file = fopen(fnIn, "rb");
+	if (ct_file == NULL) {
+		fprintf(stderr, "KEM input file not found.\n");
+		return -1;
+	}
 	fseek(ct_file, 0L, SEEK_END);
 	size_t ct_len = ftell(ct_file) + 1;
 	fclose(ct_file);
@@ -246,6 +253,10 @@ int main(int argc, char *argv[]) {
 		case ENC: //Encrypt plaintext message to ciphertext
 		{
 			FILE* rsa_pub = fopen(fnKey, "rb");
+			if (rsa_pub == NULL) {
+				fprintf(stderr, "RSA Keyfile not found.\n");
+				return -1;
+			}
 			rsa_readPublic(rsa_pub, &K);
 			fclose(rsa_pub);
 
@@ -257,6 +268,10 @@ int main(int argc, char *argv[]) {
 		case DEC: //Decrypt ciphertext to plaintext message
 		{
 			FILE* rsa_pvt = fopen(fnKey, "rb");
+			if (rsa_pvt == NULL) {
+				fprintf(stderr, "RSA Keyfile not found.\n");
+				return -1;
+			}
 			rsa_readPrivate(rsa_pvt, &K);
 			fclose(rsa_pvt);
 
@@ -271,8 +286,16 @@ int main(int argc, char *argv[]) {
 		{
 			rsa_keyGen(nBits, &K);
 			FILE* rsa_pvt = fopen(fnOut, "wb");
+			if (rsa_pvt == NULL) {
+				fprintf(stderr, "Directory not found.\n");
+				return -1;
+			}
 			strcat(fnOut, ".pub");
 			FILE* rsa_pub = fopen(fnOut, "wb");
+			if (rsa_pub == NULL) {
+				fprintf(stderr, "Directory not found.\n");
+				return -1;
+			}
 			rsa_writePrivate(rsa_pvt, &K);
 			rsa_writePublic(rsa_pub, &K);
 

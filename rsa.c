@@ -151,12 +151,17 @@ size_t rsa_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 
 	mpz_clear(c_mpz);
 	mpz_clear(m_mpz);
-	return len; //returns no. bytes written
+	return rsa_numBytesN(K); //returns no. bytes written
 }
 
 size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		RSA_KEY* K)
 {
+  // Prep the output buffer
+  for (int i = 0; i < len; i++) {
+    outBuf[i] = 0;
+  }
+
 	// c_mpz is the ciphertext, c, as an mpz type
 	NEWZ(c_mpz);
 	BYTES2Z(c_mpz,inBuf,len);
