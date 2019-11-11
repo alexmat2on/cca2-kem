@@ -87,23 +87,17 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	/* TODO: encapsulate random symmetric key (SK) using RSA and SHA256;
 	 * encrypt fnIn with SK; concatenate encapsulation and ciphertext;
 	 * write to fnOut. */
-	
-	//setSeed((unsigned char*)"Heha", 5); //force randBytes() to generate "bad" x
-	
 	size_t rsa_key_size = rsa_numBytesN(K);
 
 	//generate random key string 'x' and encrypt with RSA
 	unsigned char x[rsa_key_size];
+	// setSeed((unsigned char*)"Hgha", 5);
+	randBytes(x, rsa_key_size);
+	x[rsa_key_size - 1] = 0; //avoid reduction mod n
+
+	//encrypt x using RSA
 	unsigned char x_encrypted[rsa_key_size];
-	size_t rsa_ct_len = 0;
-	while(rsa_ct_len != rsa_key_size){ //while x does not satisfy RSA length parameter
-
-		randBytes(x, rsa_key_size);
-		x[rsa_key_size-1] = 0; //avoid reduction mod n
-
-		//encrypt x using RSA
-		rsa_ct_len = rsa_encrypt(x_encrypted, x, rsa_key_size, K);
-	}
+	size_t rsa_ct_len = rsa_encrypt(x_encrypted, x, rsa_key_size, K);
 
 	//Hash x using SHA256
 	unsigned char x_hashed[HASHLEN];
@@ -205,7 +199,6 @@ int main(int argc, char *argv[]) {
 	memset(fnOut,0,FNLEN+1);
 	memset(fnKey,0,FNLEN+1);
 	int mode = ENC;
-	// size_t nBits = 2048;
 	size_t nBits = 1024;
 	while ((c = getopt_long(argc, argv, "edhi:o:k:r:g:b:", long_opts, &opt_index)) != -1) {
 		switch (c) {
@@ -267,9 +260,7 @@ int main(int argc, char *argv[]) {
 			rsa_readPrivate(rsa_pvt, &K);
 			fclose(rsa_pvt);
 
-			int decapStatus = kem_decrypt(fnOut, fnIn, &K);
-
-			if(decapStatus < 0){ //exit if decapsulation fails
+			if(kem_decrypt(fnOut, fnIn, &K) < 0){ //exit if decapsulation fails
 				return -1;
 			}
 

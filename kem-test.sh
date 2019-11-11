@@ -32,3 +32,5 @@ for f in tests/data/* ; do
 	(( total++ ))
 done
 echo "$match out of $total files matched."
+
+python gen_str.py
