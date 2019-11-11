@@ -42,7 +42,7 @@
 // 	/* NOTE: len may overestimate the number of bytes actually required. */
 // 	unsigned char* buf = malloc(len);
 // 	Z2BYTES(buf,len,x);
-// 	 force little endian-ness: 
+//  force little endian-ness:
 // 	for (i = 0; i < 8; i++) {
 // 		unsigned char b = (len >> 8*i) % 256;
 // 		fwrite(&b,1,1,f);
@@ -171,6 +171,11 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 size_t rsa_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		RSA_KEY* K)
 {
+  // Prep the output buffer
+  for (int i = 0; i < len; i++) {
+    outBuf[i] = 0;
+  }
+
 	// m_mpz is the plaintext message, m, as an mpz type
 	NEWZ(m_mpz);
 	BYTES2Z(m_mpz,inBuf,len);

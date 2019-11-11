@@ -103,7 +103,7 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 
 	//Hash x using SHA256
 	unsigned char x_hashed[HASHLEN];
-	create_hash(x_hashed, x, rsa_key_size);
+	create_hash(x_hashed, x, rsa_ct_len);
 
 	//Concatenate x_encrypted and x_hashed to form KEM
 	size_t kem_size = rsa_ct_len + HASHLEN;
